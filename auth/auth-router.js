@@ -1,4 +1,5 @@
 const bcryptjs = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 
 const router = require("express").Router();
 
@@ -18,15 +19,16 @@ router.post("/register", (req, res) => {
 
     // save the user to the database
     Users.add(credentials)
-      .then(user => {
+      .then((user) => {
         res.status(201).json({ data: user });
       })
-      .catch(error => {
+      .catch((error) => {
         res.status(500).json({ message: error.message });
       });
   } else {
     res.status(400).json({
-      message: "please provide username and password and the password shoud be alphanumeric",
+      message:
+        "please provide username and password and the password shoud be alphanumeric",
     });
   }
 });
@@ -39,19 +41,36 @@ router.post("/login", (req, res) => {
       .then(([user]) => {
         // compare the password the hash stored in the database
         if (user && bcryptjs.compareSync(password, user.password)) {
-          res.status(200).json({ message: "Welcome to our API" });
+          // [ 10:31 LT ]
+          const token = signToken(user);
+          res.status(200).json({ message: "Welcome to our API", token });
         } else {
           res.status(401).json({ message: "Invalid credentials" });
         }
       })
-      .catch(error => {
+      .catch((error) => {
         res.status(500).json({ message: error.message });
       });
   } else {
     res.status(400).json({
-      message: "please provide username and password and the password shoud be alphanumeric",
+      message:
+        "please provide username and password and the password shoud be alphanumeric",
     });
   }
 });
+
+//  [10:33 - 10:41 Luis Time]
+function signToken(user) {
+  const payload = {
+    subject: user.id,
+    username: user.username,
+    role: user.role,
+  };
+  const secret = process.env.JWT_SECRET || `it's a secret, very safe..`;
+  const options = {
+    expiresIn: `1d`,
+  };
+  return jwt.sign(payload, secret, options);
+}
 
 module.exports = router;
